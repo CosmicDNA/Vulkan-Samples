@@ -1,0 +1,50 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-release",
+      "hidden": false,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "hidden": false,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/windows",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-release",
+      "hidden": false,
+      "configurePreset": "windows-release",
+      "configuration": "Release",
+      "targets": [
+        "vulkan_samples"
+      ],
+      "jobs": 0
+    },
+    {
+      "name": "windows-debug",
+      "hidden": false,
+      "configurePreset": "windows-debug",
+      "configuration": "Debug",
+      "targets": [
+        "vulkan_samples"
+      ],
+      "jobs": 0
+    }
+  ]
+}

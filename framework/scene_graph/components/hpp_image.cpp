@@ -22,7 +22,7 @@
 #include "scene_graph/components/image/astc.h"
 #include "scene_graph/components/image/ktx.h"
 #include "scene_graph/components/image/stb.h"
-#include <stb_image_resize.h>
+#include <stb_image_resize2.h>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
 
@@ -247,8 +247,8 @@ void HPPImage::generate_mipmaps()
 		next_mipmap.extent = vk::Extent3D(next_width, next_height, 1u);
 
 		// Fill next mipmap memory
-		stbir_resize_uint8(data.data() + prev_mipmap.offset, prev_mipmap.extent.width, prev_mipmap.extent.height, 0,
-		                   data.data() + next_mipmap.offset, next_mipmap.extent.width, next_mipmap.extent.height, 0, channels);
+		stbir_resize_uint8_linear(data.data() + prev_mipmap.offset, prev_mipmap.extent.width, prev_mipmap.extent.height, 0,
+		                   data.data() + next_mipmap.offset, next_mipmap.extent.width, next_mipmap.extent.height, 0, static_cast<stbir_pixel_layout>(channels));
 
 		mipmaps.emplace_back(std::move(next_mipmap));
 

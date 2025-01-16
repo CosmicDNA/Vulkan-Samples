@@ -108,14 +108,6 @@ HPPGui::HPPGui(VulkanSampleCpp &sample_, const vkb::Window &window, const vkb::s
 
 	// Enable keyboard navigation
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.KeyMap[ImGuiKey_Space]      = static_cast<int>(KeyCode::Space);
-	io.KeyMap[ImGuiKey_Enter]      = static_cast<int>(KeyCode::Enter);
-	io.KeyMap[ImGuiKey_LeftArrow]  = static_cast<int>(KeyCode::Left);
-	io.KeyMap[ImGuiKey_RightArrow] = static_cast<int>(KeyCode::Right);
-	io.KeyMap[ImGuiKey_UpArrow]    = static_cast<int>(KeyCode::Up);
-	io.KeyMap[ImGuiKey_DownArrow]  = static_cast<int>(KeyCode::Down);
-	io.KeyMap[ImGuiKey_Tab]        = static_cast<int>(KeyCode::Tab);
-	io.KeyMap[ImGuiKey_Escape]     = static_cast<int>(KeyCode::Backspace);
 
 	// Default font
 	fonts.emplace_back(default_font, font_size * dpi_factor);
@@ -937,59 +929,74 @@ bool HPPGui::input_event(const InputEvent &input_event)
 	auto &io                 = ImGui::GetIO();
 	auto  capture_move_event = false;
 
-	if (input_event.get_source() == EventSource::Keyboard)
+	switch (input_event.get_source())
 	{
-		const auto &key_event = static_cast<const KeyInputEvent &>(input_event);
+		case EventSource::Keyboard:
+		{
+			const auto &key_event = static_cast<const KeyInputEvent &>(input_event);
 
-		if (key_event.get_action() == KeyAction::Down)
-		{
-			io.KeysDown[static_cast<int>(key_event.get_code())] = true;
+			switch (key_event.get_action())
+			{
+				case KeyAction::Down:
+					io.AddKeyEvent(static_cast<ImGuiKey>(key_event.get_code()), true);
+					break;
+				case KeyAction::Up:
+					io.AddKeyEvent(static_cast<ImGuiKey>(key_event.get_code()), false);
+					break;
+				default:
+					break;
+			}
+			break;
 		}
-		else if (key_event.get_action() == KeyAction::Up)
+		case EventSource::Mouse:
 		{
-			io.KeysDown[static_cast<int>(key_event.get_code())] = false;
-		}
-	}
-	else if (input_event.get_source() == EventSource::Mouse)
-	{
-		const auto &mouse_button = static_cast<const MouseButtonInputEvent &>(input_event);
+			const auto &mouse_button = static_cast<const MouseButtonInputEvent &>(input_event);
 
-		io.MousePos = ImVec2{mouse_button.get_pos_x() * content_scale_factor,
-		                     mouse_button.get_pos_y() * content_scale_factor};
+			io.MousePos = ImVec2{mouse_button.get_pos_x() * content_scale_factor,
+			                     mouse_button.get_pos_y() * content_scale_factor};
 
-		auto button_id = static_cast<int>(mouse_button.get_button());
+			auto button_id = static_cast<int>(mouse_button.get_button());
 
-		if (mouse_button.get_action() == MouseAction::Down)
-		{
-			io.MouseDown[button_id] = true;
+			switch (mouse_button.get_action())
+			{
+				case MouseAction::Down:
+					io.MouseDown[button_id] = true;
+					break;
+				case MouseAction::Up:
+					io.MouseDown[button_id] = false;
+					break;
+				case MouseAction::Move:
+					capture_move_event = io.WantCaptureMouse;
+					break;
+				default:
+					break;
+			}
+			break;
 		}
-		else if (mouse_button.get_action() == MouseAction::Up)
+		case EventSource::Touchscreen:
 		{
-			io.MouseDown[button_id] = false;
-		}
-		else if (mouse_button.get_action() == MouseAction::Move)
-		{
-			capture_move_event = io.WantCaptureMouse;
-		}
-	}
-	else if (input_event.get_source() == EventSource::Touchscreen)
-	{
-		const auto &touch_event = static_cast<const TouchInputEvent &>(input_event);
+			const auto &touch_event = static_cast<const TouchInputEvent &>(input_event);
 
-		io.MousePos = ImVec2{touch_event.get_pos_x(), touch_event.get_pos_y()};
+			io.MousePos = ImVec2{touch_event.get_pos_x(), touch_event.get_pos_y()};
 
-		if (touch_event.get_action() == TouchAction::Down)
-		{
-			io.MouseDown[touch_event.get_pointer_id()] = true;
+			switch (touch_event.get_action())
+			{
+				case TouchAction::Down:
+					io.MouseDown[touch_event.get_pointer_id()] = true;
+					break;
+				case TouchAction::Up:
+					io.MouseDown[touch_event.get_pointer_id()] = false;
+					break;
+				case TouchAction::Move:
+					capture_move_event = io.WantCaptureMouse;
+					break;
+				default:
+					break;
+			}
+			break;
 		}
-		else if (touch_event.get_action() == TouchAction::Up)
-		{
-			io.MouseDown[touch_event.get_pointer_id()] = false;
-		}
-		else if (touch_event.get_action() == TouchAction::Move)
-		{
-			capture_move_event = io.WantCaptureMouse;
-		}
+		default:
+			break;
 	}
 
 	// Toggle GUI elements when tap or clicking outside the GUI windows

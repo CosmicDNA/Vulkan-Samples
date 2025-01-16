@@ -17,11 +17,11 @@
 
 #include "glsl_compiler.h"
 
-#include <SPIRV/GLSL.std.450.h>
-#include <SPIRV/GlslangToSpv.h>
-#include <StandAlone/DirStackFileIncluder.h>
-#include <glslang/Include/ShHandle.h>
-#include <glslang/OSDependent/osinclude.h>
+#include <spirv_cross/GLSL.std.450.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
+#include <DirStackFileIncluder.h>
+#include <ShHandle.h>
+#include <osinclude.h>
 #include <glslang/Public/ResourceLimits.h>
 
 namespace vkb

@@ -22,5 +22,7 @@
 
 std::unique_ptr<vkb::PlatformContext> create_platform_context(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow)
 {
-	return std::make_unique<vkb::WindowsPlatformContext>(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+	const char cmdline[] = "sample hpp_push_descriptors" ;
+	auto context = std::make_unique<vkb::WindowsPlatformContext>(hInstance, hPrevInstance, (PSTR)cmdline, nCmdShow);
+	return context;
 }

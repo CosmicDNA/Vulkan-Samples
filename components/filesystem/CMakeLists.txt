@@ -17,6 +17,7 @@
 vkb__register_component(
     NAME filesystem
     HEADERS
+        ${Stb_INCLUDE_DIR}
         include/filesystem/filesystem.hpp
         include/filesystem/legacy.h
         # private
@@ -27,7 +28,6 @@ vkb__register_component(
         src/std_filesystem.cpp
     LINK_LIBS
         vkb__core
-        stb
 )
 
 # GCC 9.0 and later has std::filesystem in the stdc++ library

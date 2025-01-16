@@ -138,14 +138,6 @@ Gui::Gui(VulkanSampleC &sample_, const Window &window, const Stats *stats, const
 
 	// Enable keyboard navigation
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.KeyMap[ImGuiKey_Space]      = static_cast<int>(KeyCode::Space);
-	io.KeyMap[ImGuiKey_Enter]      = static_cast<int>(KeyCode::Enter);
-	io.KeyMap[ImGuiKey_LeftArrow]  = static_cast<int>(KeyCode::Left);
-	io.KeyMap[ImGuiKey_RightArrow] = static_cast<int>(KeyCode::Right);
-	io.KeyMap[ImGuiKey_UpArrow]    = static_cast<int>(KeyCode::Up);
-	io.KeyMap[ImGuiKey_DownArrow]  = static_cast<int>(KeyCode::Down);
-	io.KeyMap[ImGuiKey_Tab]        = static_cast<int>(KeyCode::Tab);
-	io.KeyMap[ImGuiKey_Escape]     = static_cast<int>(KeyCode::Backspace);
 
 	// Default font
 	fonts.emplace_back(default_font, font_size * dpi_factor);
@@ -996,12 +988,13 @@ bool Gui::input_event(const InputEvent &input_event)
 
 		if (key_event.get_action() == KeyAction::Down)
 		{
-			io.KeysDown[static_cast<int>(key_event.get_code())] = true;
+				io.AddKeyEvent(static_cast<ImGuiKey>(key_event.get_code()), true);
 		}
 		else if (key_event.get_action() == KeyAction::Up)
 		{
-			io.KeysDown[static_cast<int>(key_event.get_code())] = false;
+				io.AddKeyEvent(static_cast<ImGuiKey>(key_event.get_code()), false);
 		}
+
 	}
 	else if (input_event.get_source() == EventSource::Mouse)
 	{

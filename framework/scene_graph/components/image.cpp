@@ -22,7 +22,7 @@
 #include "common/error.h"
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include <stb_image_resize.h>
+#include <stb_image_resize2.h>
 
 #include "common/utils.h"
 #include "filesystem/legacy.h"
@@ -285,8 +285,8 @@ void Image::generate_mipmaps()
 		next_mipmap.extent = {next_width, next_height, 1u};
 
 		// Fill next mipmap memory
-		stbir_resize_uint8(data.data() + prev_mipmap.offset, prev_mipmap.extent.width, prev_mipmap.extent.height, 0,
-		                   data.data() + next_mipmap.offset, next_mipmap.extent.width, next_mipmap.extent.height, 0, channels);
+		stbir_resize_uint8_linear(data.data() + prev_mipmap.offset, prev_mipmap.extent.width, prev_mipmap.extent.height, 0,
+		                   data.data() + next_mipmap.offset, next_mipmap.extent.width, next_mipmap.extent.height, 0, static_cast<stbir_pixel_layout>(channels));
 
 		mipmaps.emplace_back(std::move(next_mipmap));
 
@@ -356,6 +356,18 @@ void Image::coerce_format_to_srgb()
 	format = maybe_coerce_to_srgb(format);
 }
 
+constexpr uint64_t hash(std::string_view str) {
+    uint64_t hash = 0;
+    for (char c : str) {
+        hash = (hash * 131) + c;
+    }
+    return hash;
+}
+
+constexpr uint64_t operator"" _hash(const char* str, size_t len) {
+    return hash(std::string_view(str, len));
+}
+
 std::unique_ptr<Image> Image::load(const std::string &name, const std::string &uri,
                                    ContentType content_type)
 {
@@ -366,21 +378,20 @@ std::unique_ptr<Image> Image::load(const std::string &name, const std::string &u
 	// Get extension
 	auto extension = get_extension(uri);
 
-	if (extension == "png" || extension == "jpg")
-	{
-		image = std::make_unique<Stb>(name, data, content_type);
-	}
-	else if (extension == "astc")
-	{
-		image = std::make_unique<Astc>(name, data);
-	}
-	else if (extension == "ktx")
-	{
-		image = std::make_unique<Ktx>(name, data, content_type);
-	}
-	else if (extension == "ktx2")
-	{
-		image = std::make_unique<Ktx>(name, data, content_type);
+	switch(hash(extension)) {
+		case "png"_hash:
+		case "jpg"_hash:
+			image = std::make_unique<Stb>(name, data, content_type);
+			break;
+		case "astc"_hash:
+			image = std::make_unique<Astc>(name, data);
+			break;
+		case "ktx"_hash:
+			image = std::make_unique<Ktx>(name, data, content_type);
+			break;
+		case "ktx2"_hash:
+			image = std::make_unique<Ktx>(name, data, content_type);
+			break;
 	}
 
 	return image;

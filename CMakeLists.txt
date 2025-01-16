@@ -16,6 +16,21 @@
 # limitations under the License.
 #
 
+if(WIN32)
+    set(CMAKE_TOOLCHAIN_FILE "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    set(VCPKG_INSTALLED_ARCH_OS "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows")
+    set(VK_ADD_LAYER_PATH "${VCPKG_INSTALLED_ARCH_OS}/bin")
+    message("VK_LAYER_ADD_PATH is ${VK_ADD_LAYER_PATH}")
+    if(DEBUG)
+        set(VKB_VALIDATION_LAYERS TRUE)
+        set(VKB_VALIDATION_LAYERS_BEST_PRACTICES TRUE)
+    endif()
+  endif()
+  if (LINUX)
+    set(VCPKG_SHARE "./vcpkg_installed/x64-linux/share/")
+    set(CMAKE_RC_ANDROID_TOOLCHAIN_MACHINE "~/Workspaces/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake")
+endif()
+
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/bldsys/cmake/module")
 
 if(NOT DEFINED CMAKE_C_COMPILER_LAUNCHER AND NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
@@ -38,16 +53,20 @@ project(vulkan_samples)
 
 # search for Vulkan SDK
 find_package(Vulkan)
+find_package(Ktx CONFIG REQUIRED)
+find_package(directx-dxc CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
+find_package(Stb REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+
+set(Vulkan_dxc_EXECUTABLE "${VCPKG_INSTALLED_ARCH_OS}/tools/directx-dxc/dxc.exe")
+# message("DXC: ${Vulkan_dxc_EXECUTABLE}")
 
 if(Vulkan_FOUND)
-    if(NOT Vulkan_dxc_exe_FOUND)
-        find_program(Vulkan_dxc_EXECUTABLE
-                    NAMES dxc
-                    HINTS
-                    "$ENV{VULKAN_SDK}/Bin"
-                    "$ENV{VULKAN_SDK}/bin"
-                    )
-    endif()
+    find_program(Vulkan_dxc_EXECUTABLE
+        NAMES dxc
+        HINTS "${VCPKG_INSTALLED_ARCH_OS}/tools/directx-dxc"
+    )
     if(Vulkan_dxc_EXECUTABLE)
         message(STATUS "Found DirectX Shader Compiler under ${Vulkan_dxc_EXECUTABLE}")
     else()
@@ -106,3 +125,36 @@ endif()
 add_subdirectory(app)
 
 add_subdirectory(antora)
+
+# Add custom target for the Res folder
+add_custom_target(copy_Res ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/output
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/resources/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_BINARY_DIR}/resources/shaders
+  DEPENDS
+    ${CMAKE_SOURCE_DIR}/assets
+    ${CMAKE_SOURCE_DIR}/shaders
+)
+
+# Add dependency to the main target
+add_dependencies(${PROJECT_NAME} copy_Res)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+)
+
+
+set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/release)
+
+install(TARGETS ${PROJECT_NAME}
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION bin
+  ARCHIVE DESTINATION lib
+)
+
+install(DIRECTORY ${CMAKE_BINARY_DIR}/lib DESTINATION .)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/bin DESTINATION .)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/resources DESTINATION .)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/output DESTINATION .)

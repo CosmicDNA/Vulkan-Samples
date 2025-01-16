@@ -33,11 +33,11 @@ namespace fs
 namespace path
 {
 const std::unordered_map<Type, std::string> relative_paths = {
-    {Type::Assets, "assets/"},
-    {Type::Shaders, "shaders/"},
-    {Type::Storage, "output/"},
-    {Type::Screenshots, "output/images/"},
-    {Type::Logs, "output/logs/"},
+    {Type::Assets, "../resources/assets/"},
+    {Type::Shaders, "../resources/shaders/"},
+    {Type::Storage, "../output/"},
+    {Type::Screenshots, "../output/images/"},
+    {Type::Logs, "../output/logs/"},
 };
 
 const std::string get(const Type type, const std::string &file)

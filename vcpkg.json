@@ -1,0 +1,30 @@
+{
+  "builtin-baseline": "d320630b28aeb59b24424eb2a7ef3905314107a1",
+  "dependencies": [
+    "catch2",
+    "cli11",
+    "directx-dxc",
+    "fmt",
+    "glfw3",
+    "glm",
+    "glslang",
+    "imgui",
+    {
+      "name": "ktx",
+      "features": [
+        "vulkan"
+      ]
+    },
+    "opencl",
+    "spdlog",
+    "spirv-cross",
+    "stb",
+    "tinygltf",
+    "tracy",
+    "vit-vit-ctpl",
+    "volk",
+    "vulkan",
+    "vulkan-memory-allocator",
+    "vulkan-validationlayers"
+  ]
+}

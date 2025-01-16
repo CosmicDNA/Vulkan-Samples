@@ -514,26 +514,184 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:plugins,INCLUDE_DIRECTORIES> ${CMAKE_CURRENT_SOURCE_DIR})
 
+# message("SPIRV: ${VCPKG_INSTALLED_ARCH_OS}/include/spirv_cross")
+
+include_directories(
+    SYSTEM
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# ctpl
+# add_library(ctpl INTERFACE)
+# set(CTPL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/CTPL)
+find_path(VIT_VIT_CTPL_INCLUDE_DIRS "ctpl_stl.h")
+# target_sources(ctpl INTERFACE ${VIT_VIT_CTPL_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${VIT_VIT_CTPL_INCLUDE_DIRS})
+
+find_package(glslang CONFIG REQUIRED)
+find_package(spirv_cross_core CONFIG REQUIRED)
+find_package(spirv_cross_glsl CONFIG REQUIRED)
+find_package(glslang CONFIG REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(OpenCL CONFIG REQUIRED)
+find_package(volk CONFIG REQUIRED)
+
+find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${TINYGLTF_INCLUDE_DIRS}
+    ${Stb_INCLUDE_DIR}
+)
+
+# Set the necessary compile definitions
+if(TARGET glm::glm)
+    message(STATUS "glm found")
+    target_compile_definitions(glm::glm INTERFACE
+        GLM_FORCE_SWIZZLE
+        GLM_FORCE_RADIANS
+        GLM_FORCE_CTOR_INIT
+        GLM_ENABLE_EXPERIMENTAL
+    )
+endif()
+
+if(TARGET glslang::glslang)
+    message(STATUS "glslang found")
+
+    # Set the desired options
+    target_compile_definitions(glslang::glslang INTERFACE
+        ENABLE_SPVREMAPPER=OFF
+        ENABLE_GLSLANG_BINARIES=OFF
+        ENABLE_HLSL=ON
+        ENABLE_OPT=OFF
+        BUILD_TESTING=OFF
+        BUILD_EXTERNAL=OFF
+    )
+
+    if(IOS)
+        target_compile_definitions(glslang::glslang INTERFACE ENABLE_PCH=OFF)
+    endif()
+
+    # Set target properties
+    if(TARGET GenericCodeGen)
+        set_target_properties(GenericCodeGen PROPERTIES FOLDER "ThirdParty")
+    endif()
+    if(TARGET MachineIndependent)
+        set_target_properties(MachineIndependent PROPERTIES FOLDER "ThirdParty")
+    endif()
+    if(TARGET HLSL)
+        set_target_properties(HLSL PROPERTIES FOLDER "ThirdParty")
+    endif()
+
+    # Set compile options for non-MSVC compilers
+    if(NOT MSVC)
+        target_compile_options(glslang::glslang PRIVATE
+            "-Wno-logical-op-parentheses"
+            "-Wno-unused-parameter")
+
+        target_compile_options(glslang::SPIRV PRIVATE
+            "-Wno-logical-op-parentheses"
+            "-Wno-unused-parameter")
+    endif()
+else()
+    message(STATUS "glslang not found")
+endif()
+
+include_directories(SYSTEM
+    ${VCPKG_INSTALLED_ARCH_OS}/include
+)
+
+target_compile_definitions(${PROJECT_NAME} INTERFACE VK_NO_PROTOTYPES)
+
+if(VKB_ENABLE_PORTABILITY)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE VK_ENABLE_BETA_EXTENSIONS)
+endif()
+
+if(ANDROID)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_ANDROID_KHR)
+elseif(WIN32)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_WIN32_KHR)
+elseif(APPLE)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_METAL_EXT)
+elseif(UNIX)
+    if (VKB_WSI_SELECTION STREQUAL XCB)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(XCB xcb REQUIRED)
+        if (XCB_FOUND)
+            target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_XCB_KHR)
+        endif()
+    elseif (VKB_WSI_SELECTION STREQUAL XLIB)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(X11 x11 REQUIRED)
+        if (X11_FOUND)
+            target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_XLIB_KHR)
+        endif()
+    elseif (VKB_WSI_SELECTION STREQUAL WAYLAND)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(WAYLAND wayland-client REQUIRED)
+        if (WAYLAND_FOUND)
+            target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_WAYLAND_KHR)
+        endif()
+    elseif (VKB_WSI_SELECTION STREQUAL D2D)
+        set(DIRECT_TO_DISPLAY TRUE)
+        set(DIRECT_TO_DISPLAY TRUE PARENT_SCOPE)
+        target_compile_definitions(${PROJECT_NAME} INTERFACE VK_USE_PLATFORM_DISPLAY_KHR)
+    else()
+        message(FATAL_ERROR "Unknown WSI")
+    endif()
+endif()
+
 # Link third party libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC
     vkb__core
     vkb__filesystem
-    volk
-    ktx
-    stb
+    volk::volk volk::volk_headers
+    KTX::ktx
     ${ASTC_TARGET}
-    imgui
-    tinygltf
-    glm
-    glslang
-    SPIRV
-    vma
-    spirv-cross-glsl
-    glslang-default-resource-limits
-    spdlog
-    ctpl
+    imgui::imgui
+    glm::glm
+    glslang::glslang glslang::glslang-default-resource-limits
+    spirv-cross-core spirv-cross-glsl
+    spdlog::spdlog
     CLI11::CLI11
+    Catch2::Catch2 Catch2::Catch2WithMain
+    OpenCL::Headers OpenCL::HeadersCpp
+    custom_vulkan
     plugins)
+
+# Tracy
+if (VKB_PROFILING)
+    find_package(Tracy CONFIG REQUIRED)
+    set(TRACY_ENABLE ${VKB_PROFILING})
+    set(TRACY_TIMER_FALLBACK ON)
+    add_compile_definitions(TRACY_NO_INVARIANT_CHECK=1)
+    # Link Tracy to target
+    target_link_libraries(${PROJECT_NAME} PUBLIC TracyClient)
+endif()
+
+if(NOT ANDROID AND NOT IOS)
+    if (NOT DIRECT_TO_DISPLAY)
+        # GLFW
+        find_package(glfw3 CONFIG REQUIRED)
+        option(GLFW_BUILD_DOCS OFF)
+        option(GLFW_BUILD_TESTS OFF)
+        option(GLFW_BUILD_EXAMPLES OFF)
+        option(GLFW_BUILD_TESTS OFF)
+        option(GLFW_INSTALL OFF)
+        option(BUILD_SHARED_LIBS ON)
+        if (VKB_WSI_SELECTION STREQUAL WAYLAND)
+            set(GLFW_USE_WAYLAND ON)
+        endif()
+
+        target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+
+        if (TARGET update_mappings)
+            set_target_properties(update_mappings PROPERTIES FOLDER "ThirdParty")
+        endif()
+    endif()
+endif()
+
 
 if(${NEED_LINK_ATOMIC})
     target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
